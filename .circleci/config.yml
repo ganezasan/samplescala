@@ -33,7 +33,6 @@ jobs:
           paths:
             - "~/.ivy2/cache"
             - "~/.sbt"
-            - "~/.m2"
       - deploy:
           command: |
               mv target/universal/samplescala.zip $CIRCLE_ARTIFACTS/$ARTIFACT_BUILD
