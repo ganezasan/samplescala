@@ -96,7 +96,7 @@ jobs:
             done
           background: true
       - run:
-          name: sbt compile
+          name: sbt version
           command: sbt version
       - run:
           name: sbt compile

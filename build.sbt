@@ -2,7 +2,7 @@
 
 name := "samplescala"
 
-version := "0.1"
+version := "1.4.9"
 
 scalaVersion := "2.12.5"
 
