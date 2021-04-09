@@ -1,39 +1,77 @@
-version: 2
+version: 2.1
+commands:
+  install_oracle_jdk:
+    steps:
+      # install java 8 see https://qiita.com/shinobu_shiva/items/a050a493a21ff73b35c6
+      - run:
+          name: Download Java
+          command: |
+            FILE=~/app.terminal-order.com/jdk-8u131-linux-x64.rpm
+            if test -f "$FILE"; then
+                echo "$FILE exists"
+            else
+                echo "$FILE not exists"
+                wget --no-cookies --no-check-certificate --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jdk-8u131-linux-x64.rpm"
+            fi
+      - run:
+          name: LocalInstall Java
+          command: 'sudo yum localinstall jdk-8u131-linux-x64.rpm -y'
+      # Javaをキャッシュする
+      - save_cache:
+          key: java-cache
+          paths:
+            - ~/app.terminal-order.com/jdk-8u131-linux-x64.rpm
+      - run: sudo rm -f ~/app.terminal-order.com/*.rpm
+      - run: java -version
+      - run:
+          name: Install sbt
+          command: |
+            curl -L --silent "https://github.com/sbt/sbt/releases/download/v1.4.9/sbt-1.4.9.tgz" > ~/sbt.tgz
+            tar zxf ~/sbt.tgz -C ~/
+            sudo ln -s ~/sbt/bin/sbt /usr/local/bin/sbt
+      - run: sudo yum install gcc-c++ make -y
+      - run: curl -sL https://rpm.nodesource.com/setup_12.x | sudo bash -
+      - run: sudo yum install -y nodejs
+      - run: node -v
 jobs:
   build:
-    working_directory: ~/samplescala
+    working_directory: ~/app.terminal-order.com
     docker:
-      - image: openjdk:8
-    environment:
-      - SBT_VERSION: 1.0.4
+      - image: amazonlinux:latest
+        environment:
+          _JAVA_OPTIONS: -Xms4096M -Xmx4096M
+          JAVA_HOME: /usr/java/latest
+          JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
+          TZ: Asia/Tokyo
+
     steps:
-      - run: echo 'export ARTIFACT_BUILD=$CIRCLE_PROJECT_REPONAME-$CIRCLE_BUILD_NUM.zip' >> $BASH_ENV
-      - run:
-          name: Get sbt binary
-          command: |
-                    apt update && apt install -y curl
-                    curl -L -o sbt-$SBT_VERSION.deb https://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb
-                    dpkg -i sbt-$SBT_VERSION.deb
-                    rm sbt-$SBT_VERSION.deb
-                    apt-get update
-                    apt-get install -y sbt python-pip git
-                    pip install awscli
-                    apt-get clean && apt-get autoclean
+      - run: yum install sudo wget yum-utils git tar jq procps -y
+      - install_oracle_jdk
       - checkout
       - restore_cache:
-          key: sbt-cache
+          keys:
+            - v1-dependencies-{{ checksum "build.sbt" }}
       - run:
-          name: Compile samplescala dist package
-          command: cat /dev/null | sbt clean update dist
-      - store_artifacts:
-          path: target/universal/samplescala.zip
-          destination: samplescala
+          name: sbt compile
+          command: cat /dev/null | sbt compile
+
       - save_cache:
-          key: sbt-cache
           paths:
-            - "~/.ivy2/cache"
-            - "~/.sbt"
-      - deploy:
+            - ~/.ivy2
+            - ~/.sbt
+          key: v1-dependencies-{{ checksum "build.sbt" }}
+
+      - run:
           command: |
-              mv target/universal/samplescala.zip $CIRCLE_ARTIFACTS/$ARTIFACT_BUILD
-              aws s3 cp $CIRCLE_ARTIFACTS/$ARTIFACT_BUILD s3://devops.datapunks.org/builds/samplescala/ --metadata {\"git_sha1\":\"$CIRCLE_SHA1\"}
+            while true; do
+              sleep 5
+              $JAVA_HOME/bin/jps
+              pid=$($JAVA_HOME/bin/jps | grep 'sbt-launch.jar' | awk '{print $1}')
+              sudo -u java-user $JAVA_HOME/bin/jstack -F $pid
+              echo "======"
+            done
+          background: true
+
+      - run:
+          name: sbt test
+          command: cat /dev/null | sbt test --debug
