@@ -51,27 +51,26 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
+      - run: echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+      - run:
+          command: |
+            while true; do
+              sleep 2
+              $JAVA_HOME/bin/jps
+              pid=$($JAVA_HOME/bin/jps | grep 'sbt-launch.jar' | awk '{print $1}')
+              sudo $JAVA_HOME/bin/jstack -F $pid
+              $JAVA_HOME/bin/jcmd $pid Thread.print
+              echo "======"
+            done
+          background: true
       - run:
           name: sbt compile
           command: cat /dev/null | sbt compile
-
       - save_cache:
           paths:
             - ~/.ivy2
             - ~/.sbt
           key: v1-dependencies-{{ checksum "build.sbt" }}
-
-      - run:
-          command: |
-            while true; do
-              sleep 5
-              $JAVA_HOME/bin/jps
-              pid=$($JAVA_HOME/bin/jps | grep 'sbt-launch.jar' | awk '{print $1}')
-              sudo $JAVA_HOME/bin/jstack -F $pid
-              echo "======"
-            done
-          background: true
-
       - run:
           name: sbt test
           command: cat /dev/null | sbt test --debug
