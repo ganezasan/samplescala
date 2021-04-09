@@ -65,11 +65,6 @@ jobs:
               sudo yum-config-manager --enable mysql57-community
               sudo yum install mysql-community-client -y
               mysql --version
-      # - run:
-      #     name: set mysql
-      #     command: |
-      #         mysql -h localhost --port 3306 --protocol tcp -u root 'SELECT trx_rows_locked FROM information_schema.INNODB_TRX;'
-
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
@@ -109,3 +104,9 @@ jobs:
       - run:
           name: sbt test
           command: cat /dev/null | sbt test --debug
+
+      - run:
+          name: check dead lock
+          when: on_fail
+          command: |
+              mysql -h localhost --port 3306 --protocol tcp -u root --execute='SELECT trx_rows_locked FROM information_schema.INNODB_TRX;'
