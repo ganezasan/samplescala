@@ -58,8 +58,7 @@ jobs:
               sleep 2
               $JAVA_HOME/bin/jps
               pid=$($JAVA_HOME/bin/jps | grep 'sbt-launch.jar' | awk '{print $1}')
-              sudo $JAVA_HOME/bin/jstack -F $pid
-              $JAVA_HOME/bin/jcmd $pid Thread.print
+              sudo $JAVA_HOME/bin/jcmd $pid Thread.print
               echo "======"
             done
           background: true
