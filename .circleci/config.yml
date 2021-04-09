@@ -51,7 +51,7 @@ jobs:
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
-      - run: echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+      # - run: echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
       - run:
           command: |
             while true; do
