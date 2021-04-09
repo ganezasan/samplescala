@@ -68,8 +68,6 @@ jobs:
       - run:
           name: set mysql
           command: |
-              mysql -h localhost --port 3306 --protocol tcp -u root 'set GLOBAL innodb_status_output=ON;'
-              mysql -h localhost --port 3306 --protocol tcp -u root 'set GLOBAL innodb_status_output_locks=ON;'
               mysql -h localhost --port 3306 --protocol tcp -u root 'SHOW ENGINE INNODB STATUS;'
 
       - restore_cache:
@@ -82,7 +80,18 @@ jobs:
               sleep 2
               $JAVA_HOME/bin/jps
               pid=$($JAVA_HOME/bin/jps | grep 'sbt-launch.jar' | awk '{print $1}')
-              sudo $JAVA_HOME/bin/jcmd $pid Thread.print
+              $JAVA_HOME/bin/jcmd $pid Thread.print
+              echo "======"
+            done
+          background: true
+
+      - run:
+          command: |
+            while true; do
+              sleep 2
+              $JAVA_HOME/bin/jps
+              pid=$($JAVA_HOME/bin/jps | grep 'sbt-launch.jar' | awk '{print $1}')
+              sudo $JAVA_HOME/bin/jcmd $pid GC.class_histogram
               echo "======"
             done
           background: true
