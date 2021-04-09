@@ -43,11 +43,35 @@ jobs:
           JAVA_HOME: /usr/java/latest
           JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF8
           TZ: Asia/Tokyo
+      - image: circleci/mysql:5.7
+        environment:
+          TZ: Asia/Tokyo
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: terminal
+          MYSQL_USER: terminal
+          MYSQL_PASSWORD: oppV34S496ECuyqeEz5N5y09m54
+          DB_HOST: 127.0.0.1
+        command: [--character-set-server=utf8, --collation-server=utf8_general_ci, --default-storage-engine=innodb]
 
     steps:
       - run: yum install sudo wget yum-utils git tar jq procps -y
       - install_oracle_jdk
       - checkout
+      - run:
+          name: install mysql client
+          command: |
+              sudo yum localinstall https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm -y
+              sudo yum-config-manager --disable mysql80-community
+              sudo yum-config-manager --enable mysql57-community
+              sudo yum install mysql-community-client -y
+              mysql --version
+      - run:
+          name: set mysql
+          command: |
+              mysql -h localhost --port 3306 --protocol tcp -u root 'set GLOBAL innodb_status_output=ON;'
+              mysql -h localhost --port 3306 --protocol tcp -u root 'set GLOBAL innodb_status_output_locks=ON;'
+              mysql -h localhost --port 3306 --protocol tcp -u root 'SHOW ENGINE INNODB STATUS;'
+
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "build.sbt" }}
@@ -62,6 +86,9 @@ jobs:
               echo "======"
             done
           background: true
+      - run:
+          name: sbt compile
+          command: sbt version
       - run:
           name: sbt compile
           command: cat /dev/null | sbt compile
