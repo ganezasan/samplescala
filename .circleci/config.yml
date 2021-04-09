@@ -65,10 +65,10 @@ jobs:
               sudo yum-config-manager --enable mysql57-community
               sudo yum install mysql-community-client -y
               mysql --version
-      - run:
-          name: set mysql
-          command: |
-              mysql -h localhost --port 3306 --protocol tcp -u root 'SELECT trx_rows_locked FROM information_schema.INNODB_TRX;'
+      # - run:
+      #     name: set mysql
+      #     command: |
+      #         mysql -h localhost --port 3306 --protocol tcp -u root 'SELECT trx_rows_locked FROM information_schema.INNODB_TRX;'
 
       - restore_cache:
           keys:
